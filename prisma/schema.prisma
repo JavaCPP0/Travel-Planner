@@ -1,15 +1,86 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  email       String    @unique
+  password    String
+  name        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  plans       Plan[]
+  favorites   Favorite[]
+  shares      Share[]
+}
+
+model Plan {
+  id              Int             @id @default(autoincrement())
+  userId          Int
+  title           String
+  destination     String
+  startDate       DateTime
+  endDate         DateTime
+  theme           String?
+  budget          Int?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id])
+  places          Place[]
+  recommendation  Recommendation?
+  favorites       Favorite[]
+  shares          Share[]
+}
+
+model Place {
+  id        Int      @id @default(autoincrement())
+  planId    Int
+  name      String
+  address   String
+  day       Int       // 여행의 n일차
+  order     Int       // 하루 일정 내 순서
+  memo      String?
+  createdAt DateTime  @default(now())
+
+  plan      Plan      @relation(fields: [planId], references: [id])
+}
+
+model Recommendation {
+  id        Int      @id @default(autoincrement())
+  planId    Int      @unique
+  content   String   // LLM이 생성한 추천 일정 설명
+  createdAt DateTime @default(now())
+
+  plan      Plan     @relation(fields: [planId], references: [id])
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  planId    Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  plan      Plan     @relation(fields: [planId], references: [id])
+
+  @@unique([userId, planId]) // 중복 즐겨찾기 방지
+}
+
+model Share {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  planId    Int
+  shareCode String   @unique // 공유를 위한 코드
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  plan      Plan     @relation(fields: [planId], references: [id])
 }
